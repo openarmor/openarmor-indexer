@@ -1,0 +1,104 @@
+---
+"Test put and reset transient settings":
+  - do:
+      cluster.put_settings:
+        body:
+          transient:
+            cluster.routing.allocation.enable: "none"
+        flat_settings: true
+
+  - match: {transient: {cluster.routing.allocation.enable: "none"}}
+
+  - do:
+      cluster.get_settings:
+        flat_settings: true
+
+  - match: {transient: {cluster.routing.allocation.enable: "none"}}
+
+  - do:
+      cluster.put_settings:
+        body:
+          transient:
+            cluster.routing.allocation.enable: null
+        flat_settings: true
+
+  - match: {transient: {}}
+
+  - do:
+      cluster.get_settings:
+        flat_settings: true
+
+  - match: {transient: {}}
+---
+"Test put and reset persistent settings":
+  - do:
+      cluster.put_settings:
+        body:
+          persistent:
+            cluster.routing.allocation.enable: "none"
+        flat_settings: true
+
+  - match: {persistent: {cluster.routing.allocation.enable: "none"}}
+
+  - do:
+      cluster.get_settings:
+        flat_settings: true
+
+  - match: {persistent: {cluster.routing.allocation.enable: "none"}}
+
+  - do:
+      cluster.put_settings:
+        body:
+          persistent:
+            cluster.routing.allocation.enable: null
+        flat_settings: true
+
+  - match: {persistent: {}}
+
+  - do:
+      cluster.get_settings:
+        flat_settings: true
+
+  - match: {persistent: {}}
+
+---
+"Test get a default settings":
+
+ - do:
+      cluster.get_settings:
+        include_defaults: true
+
+ - match: {defaults.node.attr.testattr: "test"}
+
+---
+"Test set search backpressure mode":
+
+  - skip:
+      version: "- 2.3.99"
+      reason: "Search backpressure was added in 2.4"
+
+  - do:
+      cluster.put_settings:
+        body:
+          persistent:
+            search_backpressure.mode: "monitor_only"
+
+  - match: {persistent: {search_backpressure: {mode: "monitor_only"}}}
+
+---
+"Test set invalid search backpressure mode":
+
+  - skip:
+      version: "- 2.7.99"
+      reason: "Parsing and validation of SearchBackpressureMode does not exist in versions < 2.8"
+
+  - do:
+      catch: bad_request
+      cluster.put_settings:
+        body:
+          persistent:
+            search_backpressure.mode: "monitor-only"
+
+  - match: {error.root_cause.0.type: "illegal_argument_exception"}
+  - match: { error.root_cause.0.reason: "Invalid SearchBackpressureMode: monitor-only" }
+  - match: { status: 400 }
